@@ -1,6 +1,6 @@
 Three functions to copy/move files faster with Python:
 
-Based on this answer: https://stackoverflow.com/a/28129677/15096247
+**Based on this answer**: https://stackoverflow.com/a/28129677/15096247
 
 ```python
 pip install FastCopyFast
