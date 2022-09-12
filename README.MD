@@ -3,6 +3,10 @@ Three functions to copy/move files faster with Python:
 Based on this answer: https://stackoverflow.com/a/28129677/15096247
 
 ```python
+pip install FastCopyFast
+```
+
+```python
 copyfile(src: str, dst: str, copystat: bool = True) -> bool
 
 movefile(src: str, dst: str, copystat: bool = True) -> bool
@@ -13,7 +17,7 @@ src: str, dst: str, ignore: Union[list, type(None)] = None, symlinks: bool = Fal
 ```
 
 ```python
-from fastfilecopy import copyfile,movefile,copytree
+from FastCopyFast import copyfile,movefile,copytree
 
 copyfile(r"F:\2020-12-02 15-35-25.mp4", r'c:\videoxxxxxxxxxxxx.mp4')
 Out[3]: True
