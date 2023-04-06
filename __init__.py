@@ -1,7 +1,11 @@
 # based on this answer: https://stackoverflow.com/a/28129677/15096247
 import os
 import shutil
+import sys
 from typing import Union
+
+config = sys.modules[__name__]
+config.BUFFER_SIZE = 100 * 1024
 
 
 class CTError(Exception):
@@ -15,45 +19,15 @@ except:
     O_BINARY = 0
 READ_FLAGS = os.O_RDONLY | O_BINARY
 WRITE_FLAGS = os.O_WRONLY | os.O_CREAT | os.O_TRUNC | O_BINARY
-BUFFER_SIZE = 128 * 1024
 
 
-def copyfile(src: str, dst: str, copystat: bool = True) -> bool:
+def copyfile(src: str, dst: str, copystat: bool = False) -> bool:
     copyok = False
     try:
         fin = os.open(src, READ_FLAGS)
         stat = os.fstat(fin)
         fout = os.open(dst, WRITE_FLAGS, stat.st_mode)
-        for x in iter(lambda: os.read(fin, BUFFER_SIZE), b""):
-            os.write(fout, x)
-        copyok = True
-    finally:
-        try:
-            os.close(fin)
-        except Exception:
-            pass
-        try:
-            os.close(fout)
-        except Exception:
-            pass
-    if copystat:
-        try:
-            shutil.copystat(src, dst)
-            return True
-        except Exception:
-            return False
-    if copyok:
-        return True
-    return False
-
-
-def movefile(src: str, dst: str, copystat: bool = True) -> bool:
-    copyok = False
-    try:
-        fin = os.open(src, READ_FLAGS)
-        stat = os.fstat(fin)
-        fout = os.open(dst, WRITE_FLAGS, stat.st_mode)
-        for x in iter(lambda: os.read(fin, BUFFER_SIZE), b""):
+        for x in iter(lambda: os.read(fin, config.BUFFER_SIZE), b""):
             os.write(fout, x)
         copyok = True
     finally:
@@ -66,7 +40,35 @@ def movefile(src: str, dst: str, copystat: bool = True) -> bool:
         except Exception:
             pass
     if copystat and copyok:
+        try:
+            shutil.copystat(src, dst)
+            return True
+        except Exception:
+            return False
+    if copyok:
+        return True
+    return False
 
+
+def movefile(src: str, dst: str, copystat: bool = False) -> bool:
+    copyok = False
+    try:
+        fin = os.open(src, READ_FLAGS)
+        stat = os.fstat(fin)
+        fout = os.open(dst, WRITE_FLAGS, stat.st_mode)
+        for x in iter(lambda: os.read(fin, config.BUFFER_SIZE), b""):
+            os.write(fout, x)
+        copyok = True
+    finally:
+        try:
+            os.close(fin)
+        except Exception:
+            pass
+        try:
+            os.close(fout)
+        except Exception:
+            pass
+    if copystat and copyok:
         try:
             shutil.copystat(src, dst)
         except Exception:
@@ -82,7 +84,12 @@ def movefile(src: str, dst: str, copystat: bool = True) -> bool:
 
 
 def copytree(
-    src: str, dst: str, ignore: Union[list, type(None)] = None, symlinks: bool = False
+    src: str,
+    dst: str,
+    ignore: Union[list, type(None)] = None,
+    symlinks: bool = False,
+    copystat: bool = False,
+    ignore_exceptions=True,
 ):
     if ignore is None:
         ignore = []
@@ -103,12 +110,13 @@ def copytree(
             elif os.path.isdir(srcname):
                 copytree(srcname, dstname, ignore, symlinks)
             else:
-                copyfile(srcname, dstname)
-            # XXX What about devices, sockets etc.?
+                copyfile(srcname, dstname, copystat)
 
         except (IOError, os.error) as why:
             errors.append((srcname, dstname, str(why)))
         except CTError as err:
             errors.extend(err.errors)
+            print(err)
     if errors:
-        raise CTError(errors)
+        if not ignore_exceptions:
+            raise CTError(errors)
